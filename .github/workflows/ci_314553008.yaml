@@ -1,44 +1,43 @@
-# Pre-commit hooks — run automatically on `git commit`.
-#
-# First-time setup (per developer machine):
-#     uv tool install pre-commit
-#     pre-commit install
-#
-# Run manually against the whole repo:
-#     pre-commit run --all-files
+name: CI Pipeline
 
-repos:
-  # --- Generic hygiene -------------------------------------------------------
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
-    hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
-      - id: check-yaml
-      - id: check-toml
-      - id: check-json
-      - id: check-merge-conflict
-      - id: check-added-large-files
-        args: ["--maxkb=1024"]
-      - id: detect-private-key
-      - id: mixed-line-ending
-        args: ["--fix=lf"]
+on:
+  push:
 
-  # --- Frontend (TS/CSS/JSON/MD) --------------------------------------------
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8
-    hooks:
-      - id: prettier
-        types_or: [javascript, jsx, ts, tsx, css, json, markdown, yaml]
-        additional_dependencies:
-          - prettier@3.3.3
+jobs:
+  typecheck:
+    name: TypeScript Typecheck
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run typecheck
 
-  - repo: local
-    hooks:
-      - id: eslint
-        name: eslint
-        language: system
-        files: ^src/.*\.(ts|tsx)$
-        # Run via pnpm so the project's locked ESLint version + plugins are used.
-        entry: bash -c 'cd src && pnpm exec eslint --max-warnings=0'
-        pass_filenames: false
+  prettier:
+    name: Prettier Check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run format:check
+
+  test:
+    name: Test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx vitest run --reporter=junit --outputFile=test-results.xml
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: test-results.xml

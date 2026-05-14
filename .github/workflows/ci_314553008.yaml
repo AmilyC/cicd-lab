@@ -26,6 +26,17 @@ jobs:
       - run: npm ci
       - run: npm run format:check
 
+  lint:
+    name: ESLint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run lint
+
   test:
     name: Test
     runs-on: ubuntu-24.04
@@ -44,3 +55,19 @@ jobs:
         if: always()
         with:
           files: test-results.xml
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx vitest run --coverage
+      - name: Coverage Report
+        uses: davelosert/vitest-coverage-report-action@v2
+        if: always()
